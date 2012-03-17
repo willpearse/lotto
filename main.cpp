@@ -25,14 +25,47 @@ int main (int argc, const char * argv[])
     if(argc == 1)
     {
         cout << "To run with real data, enter two arguments: the community file, then the name of an ouput file" << endl;
-        cout << "To simulate, enter four arguments: the number of communities, number of years in each, number of species, and number of individuals." << endl;
+        cout << "To simulate, enter five arguments: the number of communities, number of years in each, number of species, number of starting individuals, and the number of additions per year." << endl;
         cout << "*Anything* else will either do nothing, or cause a confusing-looking error." << endl;
     }
     
     if(argc == 3)
     {
+        //Loading data from file
         Data data(argv[2]);
         
+    }
+    
+    if(argc == 6)
+    {
+        //RANDOMISATIONS
+        cout << "dave";
+        //Setup
+        int n_communities = atoi(argv[1]);
+        int n_years = atoi(argv[2]);
+        int n_additions = atoi(argv[5]);
+        vector<string> sp_names(atoi(argv[3]));
+        int n_individuals(atoi(argv[4]));
+        char letter = 'a';
+        for(int i=0; i<sp_names.size(); ++i)
+            sp_names[i] = letter++;
+        vector<string> community_names(n_communities);
+        char big_letter = 'A';
+        for(int i=0; i<community_names.size(); ++i)
+            community_names[i] = big_letter++;
+        double static_freq = 0.8;
+        double turnover_freq = (1.0 - static_freq)/(sp_names.size()+1);
+        boost::numeric::ublas::matrix<double> transition_matrix(sp_names.size(), sp_names.size()+1);
+        for(int i=0; i<transition_matrix.size1(); ++i)
+            for(int j=0; j<transition_matrix.size2(); ++j)
+                if(i==j)
+                    transition_matrix(i,j) = static_freq;
+                else
+                    transition_matrix(i,j) = turnover_freq;
+        vector<double> addition_rates(1.0 / sp_names.size(), sp_names.size());
+        
+        //Randomisations
+        Data data(n_communities, n_years, n_individuals, n_additions, sp_names, transition_matrix, addition_rates, community_names);
     }
     return 0;
 }

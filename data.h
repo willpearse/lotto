@@ -7,6 +7,7 @@
 //
 //  Data-holding class
 //  Two constructors: randomisations, real data from file
+//  NOTE: 'Reproduction' and 'death' are never kept in species_name variables - they must be added each time for forwards-compatibility
 //
 
 #ifndef lottery_data_h
@@ -43,7 +44,7 @@ public:
     //Real data from file
     Data(const char *file);
     //Randomisations
-    Data(int n_communities, int n_years, int total_individuals[]);
+    Data(int n_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::vector<std::string> community_names);
     //Print summary to screen
     void summary(void);
     //Ouput details to file

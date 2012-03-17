@@ -69,3 +69,13 @@ Data::Data(const char *file)
             transition_matrices[0](i,j) = null_freq;
     
 }
+
+Data::Data(int n_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::vector<std::string> community_names)
+{
+    for(int i=0; i<n_communities; ++i)
+    {
+        
+        Community temp(n_years, total_individuals, total_additions, sp_names, transition_matrix, addition_rates, community_names[i]);
+        communities.push_back(temp);
+    }
+}
