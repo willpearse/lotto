@@ -43,9 +43,10 @@ private:
     
 public:
     Community(std::string species, std::string abundance, std::string year, std::string name);
-    Community(int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::string name);
+    Community(int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::string name, int rnd_seed);
     double calc_likelihood(void);
     void add_species(std::string species, std::string abundance, std::string year);
+    void print_year(int index, int width);
     
     friend class Data;
 };

@@ -70,12 +70,21 @@ Data::Data(const char *file)
     
 }
 
-Data::Data(int n_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::vector<std::string> community_names)
+Data::Data(int n_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::vector<std::string> community_names, int rnd_seed)
 {
+    boost::mt19937 rnd_generator(rnd_seed);
     for(int i=0; i<n_communities; ++i)
     {
-        
-        Community temp(n_years, total_individuals, total_additions, sp_names, transition_matrix, addition_rates, community_names[i]);
+        int new_seed = rnd_generator();
+        Community temp(n_years, total_individuals, total_additions, sp_names, transition_matrix, addition_rates, community_names[i], new_seed);
         communities.push_back(temp);
     }
+}
+
+///////////
+//DISPLAY//
+///////////
+void Data::print_community(int community_index, int year_index, int width)
+{
+    communities[community_index].print_year(year_index, width);
 }

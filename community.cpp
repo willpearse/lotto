@@ -86,7 +86,7 @@ void Community::add_species(string species, string abundance, string year)
         species_names.push_back(species);
 }
 
-Community::Community(int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::string name)
+Community::Community(int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::string name, int rnd_seed)
 {
     //Setup
     assert(total_individuals >= 1);
@@ -94,7 +94,7 @@ Community::Community(int n_years, int total_individuals, int total_additions, st
     int current_vec = 0;
     
     //Make first community from uniform distribution
-    boost::mt19937 rnd_generator(NULL);
+    boost::mt19937 rnd_generator(rnd_seed);
     vector<double> uniform_weights(sp_names.size());
     for(int i=0; i<sp_names.size(); ++i)
         uniform_weights[i] = 1.0 / sp_names.size();
@@ -173,4 +173,16 @@ Community::Community(int n_years, int total_individuals, int total_additions, st
         communities[i].erase(communities[i].begin());
     }
     community_name = name;
+}
+
+//////////////
+//DISPLAY/////
+//////////////
+void Community::print_year(int index, int width)
+{
+    assert(index < communities.size());
+    cout << endl;
+    for(vector<string>::const_iterator iter = communities[index].begin(); iter != communities[index].end(); ++iter)
+        cout << setw(width) << *iter;
+    cout <<endl;
 }

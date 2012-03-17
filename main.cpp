@@ -25,7 +25,7 @@ int main (int argc, const char * argv[])
     if(argc == 1)
     {
         cout << "To run with real data, enter two arguments: the community file, then the name of an ouput file" << endl;
-        cout << "To simulate, enter five arguments: the number of communities, number of years in each, number of species, number of starting individuals, and the number of additions per year." << endl;
+        cout << "To simulate, enter six arguments: the number of communities, number of years in each, number of species, number of starting individuals, the number of additions per year, and a random seed." << endl;
         cout << "*Anything* else will either do nothing, or cause a confusing-looking error." << endl;
     }
     
@@ -36,16 +36,16 @@ int main (int argc, const char * argv[])
         
     }
     
-    if(argc == 6)
+    if(argc == 7)
     {
         //RANDOMISATIONS
-        cout << "dave";
         //Setup
         int n_communities = atoi(argv[1]);
         int n_years = atoi(argv[2]);
         int n_additions = atoi(argv[5]);
         vector<string> sp_names(atoi(argv[3]));
         int n_individuals(atoi(argv[4]));
+        int rnd_seed = atoi(argv[6]);
         char letter = 'a';
         for(int i=0; i<sp_names.size(); ++i)
             sp_names[i] = letter++;
@@ -65,7 +65,15 @@ int main (int argc, const char * argv[])
         vector<double> addition_rates(1.0 / sp_names.size(), sp_names.size());
         
         //Randomisations
-        Data data(n_communities, n_years, n_individuals, n_additions, sp_names, transition_matrix, addition_rates, community_names);
+        Data data(n_communities, n_years, n_individuals, n_additions, sp_names, transition_matrix, addition_rates, community_names, rnd_seed);
+        
+        //Guess parameters
+        
+        //Output
+        cout << "Example community - the first three years of your first simulated community:" << endl;
+        data.print_community(0,0,2);
+        data.print_community(0,1,2);
+        data.print_community(0,2,2);
     }
     return 0;
 }
