@@ -50,12 +50,16 @@ public:
     void summary(void);
     //Ouput details to file
     void output_file(std::string filename);
+    //Get transitions for each community
+    void set_transitions(void);
     //Calculate likelihood of all communities
     double likelihood(void);
     //Optimise transition matrix, with a maximum number of subsets for communities and years
     void optimise(int max_communities, int max_years);
     //Print a community out
     void print_community(int community_index, int year_index, int width=2);
+    //Print out parameters of all matrices
+    void print_parameters(int width=8);
     
     friend class Community;
     //Calculate likelihood of a single parameter

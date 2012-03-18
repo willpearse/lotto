@@ -49,8 +49,9 @@ int main (int argc, const char * argv[])
                     else
                         transition_matrix(i,j) = turnover_freq;
         Data data(5, 10, 100, 5, sp_names, transition_matrix, community_names, 123456);
-        cout << data.likelihood();
+        data.set_transitions();
         data.optimise(0,0);
+        data.print_parameters();
     }
     
     if(argc == 3)

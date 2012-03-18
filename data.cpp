@@ -86,6 +86,26 @@ Data::Data(int no_communities, int n_years, int total_individuals, int total_add
     }
 }
 
+///////////////
+//TRANSITIONS//
+///////////////
+//Equally, pointer the fuck out of this
+void Data::set_transitions(void)
+{
+    //Go through each community
+    for(int i=0; i<communities.size(); ++i)
+    {
+        //Go through each community->community transition
+        for(int j=0; j<(communities[i].n_years-1); ++j)
+        {
+            //Pull out the correct t_m
+            boost::numeric::ublas::matrix<double> curr_t_m = transition_matrices[communities[i].transition_matrix_index[j]];
+            //Use it
+            communities[i].set_transitions(curr_t_m, j);
+        }
+    }
+}
+
 //////////////
 //LIKELIHOOD//
 //////////////
@@ -158,6 +178,7 @@ double inverse_likelihood_parameter(double param, vector<Community> communities,
 ////////////
 //OPTIMISE//
 ////////////
+
 void Data::optimise(int max_communities, int max_years)
 {
     //Setup
@@ -194,4 +215,28 @@ void Data::optimise(int max_communities, int max_years)
 void Data::print_community(int community_index, int year_index, int width)
 {
     communities[community_index].print_year(year_index, width);
+}
+
+void Data::print_parameters(int width)
+{
+    for(int i=0; i<transition_matrices.size(); ++i)
+    {
+        //Header
+        cout << endl << setw(width) << "" ;
+        for(vector<string>::const_iterator iter = species_names.begin(); iter != species_names.end(); ++iter)
+            cout << setw(width) << *iter;
+        cout << setw(width) << "Death" << setw(width) << "Add." << endl;
+        
+        //Looping through
+        for(int j=0; j<transition_matrices[i].size1(); ++j)
+        {
+            cout << setw(width) << species_names[j];
+            for(int k=0; k<transition_matrices[i].size2(); ++k)
+                if(transition_matrices[i](j,k)>0.0001)
+                    cout << setw(width) << setprecision(4) << transition_matrices[i](j,k);
+                else
+                    cout << setw(width) << setprecision(4) << 0;
+            cout << endl;
+        }
+    }
 }
