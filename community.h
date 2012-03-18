@@ -33,17 +33,15 @@ private:
     std::vector<int> n_individuals;
     std::vector<int> transition_matrix_index;
     std::vector<boost::numeric::ublas::matrix<int> > event_matrices;
-    std::vector<int> addition_rates_index;
     boost::numeric::ublas::matrix<int> real_t_m;
     std::vector<boost::numeric::ublas::matrix<int> > real_e_m;
-    std::vector<double> real_a_r;
     std::vector<std::vector<std::string> > communities;
     std::string community_name;
     
     
 public:
     Community(std::string species, std::string abundance, std::string year, std::string name);
-    Community(int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::string name, int rnd_seed);
+    Community(int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::string name, int rnd_seed);
     double calc_likelihood(void);
     void add_species(std::string species, std::string abundance, std::string year);
     void print_year(int index, int width);

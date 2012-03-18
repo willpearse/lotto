@@ -70,15 +70,53 @@ Data::Data(const char *file)
     
 }
 
-Data::Data(int n_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::vector<std::string> community_names, int rnd_seed)
+Data::Data(int no_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<std::string> com_names, int rnd_seed)
 {
     boost::mt19937 rnd_generator(rnd_seed);
-    for(int i=0; i<n_communities; ++i)
+    transition_matrices.push_back(transition_matrix);
+    species_names = sp_names;
+    n_communities = no_communities;
+    community_names = com_names;
+    n_species = sp_names.size();
+    for(int i=0; i<no_communities; ++i)
     {
         int new_seed = rnd_generator();
-        Community temp(n_years, total_individuals, total_additions, sp_names, transition_matrix, addition_rates, community_names[i], new_seed);
+        Community temp(n_years, total_individuals, total_additions, sp_names, transition_matrix, com_names[i], new_seed);
         communities.push_back(temp);
     }
+}
+
+//////////////
+//LIKELIHOOD//
+//////////////
+//Optimise this function later (pointer the fuck out of it)
+double Data::likelihood(void)
+{
+    vector<double> all_likelihoods;
+    //Go through each community
+    for(int i=0; i<communities.size(); ++i)
+    {
+        for(int j=0; j<(communities[i].n_years-1); ++j)
+        {
+            //Pull out the correct t_m
+            boost::numeric::ublas::matrix<double> curr_t_m = transition_matrices[communities[i].transition_matrix_index[j]];
+            //Make copy of event_matrix to use as a counter
+            boost::numeric::ublas::matrix<int> curr_e_m = communities[i].event_matrices[j];
+            //Prepare to hold likelihoods
+            vector<double> likelihoods;
+            //Acucmulate event probabilities
+            for(int k=0; k<curr_e_m.size1(); ++k)
+                for(int l=0; l<curr_e_m.size2(); ++l)
+                    while(curr_e_m(k,l) > 0)
+                    {
+                        likelihoods.push_back(log(curr_t_m(k,l)));
+                        --curr_e_m(k,l);
+                    }
+            
+            all_likelihoods.push_back(accumulate(likelihoods.begin(), likelihoods.end(), 0.0));
+        }
+    }
+    return accumulate(all_likelihoods.begin(), all_likelihoods.end(), 0.0);
 }
 
 ///////////

@@ -44,11 +44,13 @@ public:
     //Real data from file
     Data(const char *file);
     //Randomisations
-    Data(int n_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::vector<std::string> community_names, int rnd_seed);
+    Data(int n_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<std::string> community_names, int rnd_seed);
     //Print summary to screen
     void summary(void);
     //Ouput details to file
     void output_file(std::string filename);
+    //Calculate likelihood of all communities
+    double likelihood(void);
     //Optimise transition matrix, with a maximum number of subsets for communities and years
     void optimise(int max_communities, int max_years);
     //Print a community out

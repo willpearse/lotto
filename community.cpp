@@ -53,6 +53,7 @@ Community::Community(string species, string abundance, string year, string name)
     years.push_back(year_int);
     species_names.push_back(species);
     community_name = name;
+    transition_matrix_index.push_back(0);
 }
 
 void Community::add_species(string species, string abundance, string year)
@@ -86,9 +87,11 @@ void Community::add_species(string species, string abundance, string year)
         species_names.push_back(species);
 }
 
-Community::Community(int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates, std::string name, int rnd_seed)
+Community::Community(int no_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::string name, int rnd_seed)
 {
     //Setup
+    community_name = name;
+    n_years = no_years;
     assert(total_individuals >= 1);
     vector<string> community_vec;
     int current_vec = 0;
@@ -119,17 +122,17 @@ Community::Community(int n_years, int total_individuals, int total_additions, st
     }
     
     //Make addition generators for all the species
-    boost::random::discrete_distribution<> sp_addition_distribution(addition_rates.begin(), addition_rates.end());
+    std::vector<double> equal_rates(sp_names.size(), 1.0 / sp_names.size());
+    boost::random::discrete_distribution<> curr_dist(equal_rates.begin(), equal_rates.end());
+    species_distributions.push_back(curr_dist);
     
     //Add in death for the species
     species_names = sp_names;
     n_species = sp_names.size();
     sp_names.push_back("DEATH");
-    assert(sp_names.size() == transition_matrix.size2());
     
     //Make real transition matrix
     real_t_m = transition_matrix;
-    real_a_r = addition_rates;
     
     //Make next load of communities
     while(++current_vec < n_years)
@@ -159,9 +162,18 @@ Community::Community(int n_years, int total_individuals, int total_additions, st
         
         //Do additions
         for(int i=0; i<total_additions; ++i)
-            current_com.push_back(sp_names[sp_addition_distribution(rnd_generator)]);
+        {
+            int rnd_index = species_distributions[n_species](rnd_generator);
+            ++event_matrix(rnd_index,(event_matrix.size2()-1));
+            current_com.push_back(sp_names[rnd_index]);
+            
+        }
         
-        //Book-keeping            
+        //Matrices
+        event_matrices.push_back(event_matrix);
+        transition_matrix_index.push_back(0);
+        
+        //Book-keeping
         sort(current_com.begin(), current_com.end());
         communities.push_back(current_com);
     }
@@ -172,7 +184,35 @@ Community::Community(int n_years, int total_individuals, int total_additions, st
         years.push_back(i);
         communities[i].erase(communities[i].begin());
     }
-    community_name = name;
+}
+
+//////////////
+//LIKELIHOOD//
+//////////////
+
+vector<double> likelihood(boost::numeric::ublas::matrix<int> event_matrix, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates)
+{
+    //Setup
+    int n_events=0,i,k,x=0;
+    for(i=0; i<event_matrix.size1(); ++i)
+        for(k=0; k<event_matrix.size2(); ++k)
+            n_events += event_matrix(i,k);
+    vector<double> likelihoods(n_events);
+    
+    //Loop through events and calculate likelihood
+    // - check to see if double looping to pre-allocate is worth it
+    for(i=0; i<event_matrix.size1(); ++i)
+        for(k=0; k<event_matrix.size2(); ++k)
+        {
+            while(event_matrix(i,k)>0)
+            {
+                likelihoods[x++] = transition_matrix(i,k);
+                --event_matrix(i,k);
+            }
+        }
+    //Return and check
+    assert(x == n_events);
+    return likelihoods;
 }
 
 //////////////
