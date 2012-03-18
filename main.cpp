@@ -45,13 +45,17 @@ int main (int argc, const char * argv[])
                     transition_matrix(i,j) = static_freq;
                 else
                     if (j > sp_names.size())
-                        transition_matrix(i,j) = static_freq;
+                        transition_matrix(i,j) = 1.0 / sp_names.size();
                     else
                         transition_matrix(i,j) = turnover_freq;
         Data data(5, 10, 100, 5, sp_names, transition_matrix, community_names, 123456);
         data.set_transitions();
         data.optimise(0,0);
         data.print_parameters();
+        //data.print_event_matrix(0,0);
+        //data.print_event_matrix(0,1);
+        //data.print_event_matrix(2,1);
+        //data.print_event_matrix(2,5);
     }
     
     if(argc == 3)
@@ -92,12 +96,11 @@ int main (int argc, const char * argv[])
         Data data(n_communities, n_years, n_individuals, n_additions, sp_names, transition_matrix, community_names, rnd_seed);
         
         //Guess parameters
-        cout << data.likelihood() << endl;
+        cout << "Log-likelihood: " << data.likelihood() << endl;
+        data.set_transitions();
+        data.optimise(0,0);
         //Output
-        cout << "Example community - the first three years of your first simulated community:" << endl;
-        data.print_community(0,0,2);
-        data.print_community(0,1,2);
-        data.print_community(0,2,2);
+        data.print_parameters();
     }
     return 0;
 }

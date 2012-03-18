@@ -60,11 +60,14 @@ public:
     void print_community(int community_index, int year_index, int width=2);
     //Print out parameters of all matrices
     void print_parameters(int width=8);
+    //Print out event matrix for a community's years
+    void print_event_matrix(int community_index, int transition_index, int width=8);
     
     friend class Community;
     //Calculate likelihood of a single parameter
     // - can't be a member function because of BOOST's oddities
-    friend double inverse_likelihood_parameter(double param, std::vector<Community> communities, int t_m_index, int row, int column);
+    friend double inverse_likelihood_transition(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int row, int column);
+    friend double inverse_likelihood_addition(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int sp);
 };
 
 #endif

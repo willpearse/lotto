@@ -139,9 +139,17 @@ double Data::likelihood(void)
     return accumulate(all_likelihoods.begin(), all_likelihoods.end(), 0.0);
 }
 
-//Calculate likelihood for one parameter; inversed so that you can find its *minimum*
-double inverse_likelihood_parameter(double param, vector<Community> communities, int t_m_index, int row, int column)
+//Calculate likelihood for one transition parameter; inversed so that you can find its *minimum*
+// - *VERY* dodgy way of calculating the likelihood because the changed parameter values aren't actually carried out of the function!!!
+double inverse_likelihood_transition(double param, vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int row, int column)
 {
+    //Change parameter values in rest of transition_matrix
+    double leftover = 1 - param;
+    double fudge_factor = 1 - transition_matrix(row,column);
+    for(int i=0; i<transition_matrix.size2()-1; ++i)
+        transition_matrix(row,i) = (transition_matrix(row,i) / fudge_factor) * leftover;
+    transition_matrix(row,column) = param;
+    
     vector<double> all_likelihoods;
     //Go through each community
     for(int i=0; i<communities.size(); ++i)
@@ -155,15 +163,12 @@ double inverse_likelihood_parameter(double param, vector<Community> communities,
                 boost::numeric::ublas::matrix<int> curr_e_m = communities[i].event_matrices[j];
                 //Prepare to hold likelihoods
                 vector<double> likelihoods;
-                //Acucmulate event probabilities
+                //Acucmulate transition event probabilities
                 for(int k=0; k<curr_e_m.size1(); ++k)
-                    for(int l=0; l<curr_e_m.size2(); ++l)
+                    for(int l=0; l<curr_e_m.size2()-1; ++l)
                         while(curr_e_m(k,l) > 0)
                         {
-                            if(k==row && l==column)
-                                likelihoods.push_back(log(param));
-                            else
-                                likelihoods.push_back(log(1 - param));
+                            likelihoods.push_back(log(transition_matrix(k,l)));
                             --curr_e_m(k,l);
                         }
                 
@@ -171,6 +176,45 @@ double inverse_likelihood_parameter(double param, vector<Community> communities,
             }
         }
             
+    }
+    return (0.0 - accumulate(all_likelihoods.begin(), all_likelihoods.end(), 0.0));
+}
+
+//Calculate likelihood for one transition parameter; inversed so that you can find its *minimum*
+// - *VERY* dodgy way of calculating the likelihood because the changed parameter values aren't actually carried out of the function!!!
+double inverse_likelihood_addition(double param, vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int sp)
+{
+    //Change parameter values in rest of transition_matrix
+    double leftover = 1 - param;
+    double fudge_factor = 1 - transition_matrix(sp,transition_matrix.size2()-1);
+    for(int i=0; i<transition_matrix.size1(); ++i)
+        transition_matrix(i,transition_matrix.size2()-1) = (transition_matrix(i,transition_matrix.size2()-1) / fudge_factor) * leftover;
+    transition_matrix(sp,transition_matrix.size2()-1) = param;
+    
+    vector<double> all_likelihoods;
+    //Go through each community
+    for(int i=0; i<communities.size(); ++i)
+    {
+        for(int j=0; j<(communities[i].n_years-1); ++j)
+        {
+            //Only do this if we're dealing with the transition matrix of interest
+            if (j==t_m_index)
+            {
+                //Make copy of event_matrix to use as a counter
+                boost::numeric::ublas::matrix<int> curr_e_m = communities[i].event_matrices[j];
+                //Prepare to hold likelihoods
+                vector<double> likelihoods;
+                //Acucmulate addition event probabilities
+                for(int k=0; k<curr_e_m.size1(); ++k)
+                    while(curr_e_m(k,transition_matrix.size2()-1) > 0)
+                    {
+                        likelihoods.push_back(log(transition_matrix(k,transition_matrix.size2()-1)));
+                        --curr_e_m(k,transition_matrix.size2()-1);
+                    }
+                all_likelihoods.push_back(accumulate(likelihoods.begin(), likelihoods.end(), 0.0));
+            }
+        }
+        
     }
     return (0.0 - accumulate(all_likelihoods.begin(), all_likelihoods.end(), 0.0));
 }
@@ -191,7 +235,7 @@ void Data::optimise(int max_communities, int max_years)
         {
             for(int k=0; k<n_species; ++k)
             {
-                transition_matrices[i](j,k) = boost::math::tools::brent_find_minima(boost::bind(inverse_likelihood_parameter, _1, communities, i, j, k), 0.0, 1.0, 100).first;
+                transition_matrices[i](j,k) = boost::math::tools::brent_find_minima(boost::bind(inverse_likelihood_transition, _1, communities, transition_matrices[i], i, j, k), 0.0, 1.0-sum_of_parameters, 100).first;
                 sum_of_parameters += transition_matrices[i](j,k);
             }
             
@@ -200,7 +244,7 @@ void Data::optimise(int max_communities, int max_years)
             sum_of_parameters = 0.0;
             
             //Now for the addition rates
-            transition_matrices[i](j,n_species+1) = boost::math::tools::brent_find_minima(boost::bind(inverse_likelihood_parameter, _1, communities, i, j, n_species+1), 0.0, 1.0, 100).first;
+            transition_matrices[i](j,n_species+1) = boost::math::tools::brent_find_minima(boost::bind(inverse_likelihood_addition, _1, communities, transition_matrices[i], i, j), 0.0, 1.0-sum_of_additions, 100).first;
             sum_of_additions += transition_matrices[i](j,n_species+1);
         }
         //A dodgy way to deal with the last addition parameter
@@ -215,6 +259,11 @@ void Data::optimise(int max_communities, int max_years)
 void Data::print_community(int community_index, int year_index, int width)
 {
     communities[community_index].print_year(year_index, width);
+}
+
+void Data::print_event_matrix(int community_index, int transition_index, int width)
+{
+    communities[community_index].print_event_matrix(transition_index, width);
 }
 
 void Data::print_parameters(int width)

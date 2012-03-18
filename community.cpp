@@ -274,24 +274,9 @@ void Community::set_transitions(ublas::matrix<double> transition_matrix, int com
             //Are we adding something in?
             if(most_likely[j] == n_species+1)
             {
-                //Do we have enough free slots?
-                if(remaining_sp[j] > 0)
-                {
-                    ++events_matrix(j,n_species+1);
-                    --remaining_sp[most_likely[j]];
-                    finished = 1;
-                }
-                else
-                {
-                    //No, so can we use a previous stable transition?
-                    if(stationary_sp[j] > 0)
-                    {
-                        ++events_matrix(j,n_species+1);
-                        --events_matrix(j,j);
-                        --stationary_sp[j]; 
-                        finished = 1;
-                    }
-                }
+             ++events_matrix(j,n_species+1);
+             --remaining_sp[most_likely[j]];
+             finished = 1;
             }
             else
             {
@@ -345,4 +330,26 @@ void Community::print_year(int index, int width)
     for(vector<string>::const_iterator iter = communities[index].begin(); iter != communities[index].end(); ++iter)
         cout << setw(width) << *iter;
     cout <<endl;
+}
+
+void Community::print_event_matrix(int transition_index, int width)
+{
+    //Setup
+    assert(transition_index < event_matrices.size());
+    boost::numeric::ublas::matrix<int> curr_e_m = event_matrices[transition_index];
+    
+    //Header
+    cout << endl << setw(width) << "" ;
+    for(vector<string>::const_iterator iter = species_names.begin(); iter != species_names.end(); ++iter)
+        cout << setw(width) << *iter;
+    cout << setw(width) << "Death" << setw(width) << "Add." << endl;
+    
+    //Looping through
+    for(int i = 0; i<curr_e_m.size1(); ++i)
+    {
+        cout << setw(width) << species_names[i];
+        for(int j=0; j<curr_e_m.size2(); ++j)
+            cout << setw(width) << curr_e_m(i,j);
+        cout << endl;
+    }
 }
