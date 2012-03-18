@@ -28,6 +28,7 @@
 #include <boost/random.hpp>
 #include <boost/random/discrete_distribution.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
+#include <boost/math/tools/minima.hpp>
 #include "community.h"
 
 class Data{
@@ -57,6 +58,9 @@ public:
     void print_community(int community_index, int year_index, int width=2);
     
     friend class Community;
+    //Calculate likelihood of a single parameter
+    // - can't be a member function because of BOOST's oddities
+    friend double inverse_likelihood_parameter(double param, std::vector<Community> communities, int t_m_index, int row, int column);
 };
 
 #endif

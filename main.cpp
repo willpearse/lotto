@@ -21,34 +21,36 @@ int main (int argc, const char * argv[])
     //Welcome header
     cout << "Lottery simulation model" << endl;
     cout << "Will Pearse - 2011 (will.pearse@gmail.com)" << endl;
-    vector<string> sp_names(5);
-    char letter = 'a';
-    for(int i=0; i<5; ++i)
-        sp_names[i] = letter++;
-    vector<string> community_names(5);
-    char big_letter = 'A';
-    for(int i=0; i<5; ++i)
-        community_names[i] = big_letter++;
-    double static_freq = 0.8;
-    double turnover_freq = (1.0 - static_freq)/(sp_names.size()+2);
-    boost::numeric::ublas::matrix<double> transition_matrix(sp_names.size(), sp_names.size()+2);
-    for(int i=0; i<transition_matrix.size1(); ++i)
-        for(int j=0; j<transition_matrix.size2(); ++j)
-            if(i==j)
-                transition_matrix(i,j) = static_freq;
-            else
-                if (j > sp_names.size())
-                    transition_matrix(i,j) = static_freq;
-                else
-                    transition_matrix(i,j) = turnover_freq;
-    Data data(5, 10, 100, 5, sp_names, transition_matrix, community_names, 123456);
-    cout << data.likelihood();
     
     if(argc == 1)
     {
         cout << "To run with real data, enter two arguments: the community file, then the name of an ouput file" << endl;
         cout << "To simulate, enter six arguments: the number of communities, number of years in each, number of species, number of starting individuals, the number of additions per year, and a random seed." << endl;
         cout << "*Anything* else will either do nothing, or cause a confusing-looking error." << endl;
+        
+        vector<string> sp_names(5);
+        char letter = 'a';
+        for(int i=0; i<5; ++i)
+            sp_names[i] = letter++;
+        vector<string> community_names(5);
+        char big_letter = 'A';
+        for(int i=0; i<5; ++i)
+            community_names[i] = big_letter++;
+        double static_freq = 0.8;
+        double turnover_freq = (1.0 - static_freq)/(sp_names.size()+2);
+        boost::numeric::ublas::matrix<double> transition_matrix(sp_names.size(), sp_names.size()+2);
+        for(int i=0; i<transition_matrix.size1(); ++i)
+            for(int j=0; j<transition_matrix.size2(); ++j)
+                if(i==j)
+                    transition_matrix(i,j) = static_freq;
+                else
+                    if (j > sp_names.size())
+                        transition_matrix(i,j) = static_freq;
+                    else
+                        transition_matrix(i,j) = turnover_freq;
+        Data data(5, 10, 100, 5, sp_names, transition_matrix, community_names, 123456);
+        cout << data.likelihood();
+        data.optimise(0,0);
     }
     
     if(argc == 3)

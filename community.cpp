@@ -187,35 +187,6 @@ Community::Community(int no_years, int total_individuals, int total_additions, s
 }
 
 //////////////
-//LIKELIHOOD//
-//////////////
-
-vector<double> likelihood(boost::numeric::ublas::matrix<int> event_matrix, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<double> addition_rates)
-{
-    //Setup
-    int n_events=0,i,k,x=0;
-    for(i=0; i<event_matrix.size1(); ++i)
-        for(k=0; k<event_matrix.size2(); ++k)
-            n_events += event_matrix(i,k);
-    vector<double> likelihoods(n_events);
-    
-    //Loop through events and calculate likelihood
-    // - check to see if double looping to pre-allocate is worth it
-    for(i=0; i<event_matrix.size1(); ++i)
-        for(k=0; k<event_matrix.size2(); ++k)
-        {
-            while(event_matrix(i,k)>0)
-            {
-                likelihoods[x++] = transition_matrix(i,k);
-                --event_matrix(i,k);
-            }
-        }
-    //Return and check
-    assert(x == n_events);
-    return likelihoods;
-}
-
-//////////////
 //DISPLAY/////
 //////////////
 void Community::print_year(int index, int width)

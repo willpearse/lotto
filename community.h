@@ -47,6 +47,7 @@ public:
     void print_year(int index, int width);
     
     friend class Data;
+    friend double inverse_likelihood_parameter(double param, std::vector<Community> communities, int t_m_index, int row, int column);
 };
 
 #endif
