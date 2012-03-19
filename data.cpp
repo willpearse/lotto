@@ -235,7 +235,7 @@ void Data::optimise(int max_communities, int max_years)
         {
             for(int k=0; k<n_species; ++k)
             {
-                transition_matrices[i](j,k) = boost::math::tools::brent_find_minima(boost::bind(inverse_likelihood_transition, _1, communities, transition_matrices[i], i, j, k), 0.0, 1.0-sum_of_parameters, 100).first;
+                transition_matrices[i](j,k) = boost::math::tools::brent_find_minima(boost::bind(inverse_likelihood_transition, _1, communities, transition_matrices[i], i, j, k), 0.0, 1.0, 100).first;
                 sum_of_parameters += transition_matrices[i](j,k);
             }
             
@@ -244,8 +244,12 @@ void Data::optimise(int max_communities, int max_years)
             sum_of_parameters = 0.0;
             
             //Now for the addition rates
-            transition_matrices[i](j,n_species+1) = boost::math::tools::brent_find_minima(boost::bind(inverse_likelihood_addition, _1, communities, transition_matrices[i], i, j), 0.0, 1.0-sum_of_additions, 100).first;
-            sum_of_additions += transition_matrices[i](j,n_species+1);
+            // - and the dodgy method...
+            if(j != (n_species-1))
+            {
+                transition_matrices[i](j,n_species+1) = boost::math::tools::brent_find_minima(boost::bind(inverse_likelihood_addition, _1, communities, transition_matrices[i], i, j), 0.0, 1.0-sum_of_additions, 100).first;
+                sum_of_additions += transition_matrices[i](j,n_species+1);
+            }
         }
         //A dodgy way to deal with the last addition parameter
         transition_matrices[i](n_species-1,n_species+1) = 1.0 - sum_of_additions;
@@ -263,7 +267,36 @@ void Data::print_community(int community_index, int year_index, int width)
 
 void Data::print_event_matrix(int community_index, int transition_index, int width)
 {
-    communities[community_index].print_event_matrix(transition_index, width);
+    //Are we printing a total event matrix
+    if(community_index = -1)
+    {
+        //Assign the total event matrix
+        boost::numeric::ublas::matrix<int> total_events(n_species, n_species+2);
+        for(int i=0; i<n_species; ++i)
+            for(int j=0; j<(n_species+2); ++j)
+                total_events(i,j) = 0;
+        for(int i=0; i<n_communities; ++i)
+            for(int j=0; j<communities[i].event_matrices.size(); ++j)
+                total_events += communities[i].event_matrices[j];
+        
+        //Print it out
+        //Header
+        cout << endl << setw(width) << "" ;
+        for(vector<string>::const_iterator iter = species_names.begin(); iter != species_names.end(); ++iter)
+            cout << setw(width) << *iter;
+        cout << setw(width) << "Death" << setw(width) << "Add." << endl;
+        
+        //Looping through
+        for(int i = 0; i<total_events.size1(); ++i)
+        {
+            cout << setw(width) << species_names[i];
+            for(int j=0; j<total_events.size2(); ++j)
+                cout << setw(width) << total_events(i,j);
+            cout << endl;
+        }
+    }
+    else
+        communities[community_index].print_event_matrix(transition_index, width);
 }
 
 void Data::print_parameters(int width)

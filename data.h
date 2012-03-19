@@ -32,16 +32,16 @@
 #include "community.h"
 
 class Data{
-private:
+public:
     int n_communities;
     std::vector<std::string> community_names;
     int n_species;
     std::vector< std::string > species_names;
     std::vector<int> n_sites;
     std::vector<std::vector<int> > total_individuals;
-    std::vector<boost::numeric::ublas::matrix<double> > transition_matrices;
     std::vector<Community> communities;
-public:
+
+    std::vector<boost::numeric::ublas::matrix<double> > transition_matrices;
     //Real data from file
     Data(const char *file);
     //Randomisations

@@ -167,7 +167,6 @@ Community::Community(int no_years, int total_individuals, int total_additions, s
             int rnd_index = species_distributions[n_species](rnd_generator);
             ++event_matrix(rnd_index,(event_matrix.size2()-1));
             current_com.push_back(sp_names[rnd_index]);
-            
         }
         
         //Matrices
@@ -190,135 +189,92 @@ Community::Community(int no_years, int total_individuals, int total_additions, s
 ///////////////
 //TRANSITIONS//
 ///////////////
-//What's the best way of getting to a certain species in a given transition matrix?
-static int best_transition_to_sp(boost::numeric::ublas::matrix<double> t_m, int sp)
+//What's the best (possible) way of getting to a certain species?
+// - only do an addition if all else fails
+static int best_transition_to_sp(boost::numeric::ublas::matrix<double> t_m, vector<int> spp_count, int sp)
 {
+    //Setup
     double curr_max = -1.0;
-    int max_pos = -1,i=0;
-    for(; i<t_m.size1(); ++i)
-    {
-        if(t_m(i, sp) > curr_max)
+    int max_pos = -1;
+    
+    //Loop through and check
+    for(int i=0; i<t_m.size1(); ++i)
+        if(spp_count[i]>0 && t_m(i,sp) > curr_max)
         {
+            curr_max = t_m(i,sp);
             max_pos = i;
-            curr_max = t_m(i, sp);
-        }
-    }
-    //If we're not going to reproduction (a nonsense) or dying, check repro.
-    if(sp < t_m.size1())
-        if(t_m(sp, ++i) > curr_max)
-        {
-            max_pos = i;
-            curr_max = t_m(sp, i);
         }
     
-    assert(max_pos != -1 && curr_max != -1); //We have found a new maximum
-    return max_pos;
+    //If we haven't found anything, return '-1' to indicate we should do an addition
+    return max_pos;   
 }
-//Transition-first method - likely shit
+
+//Transition-first method
 void Community::set_transitions(ublas::matrix<double> transition_matrix, int community_transition)
 {
-    //Make an empty events matrix (to be assigned)
+    //Setup
+    // - events matrix
     ublas::matrix<int> events_matrix(n_species, n_species+2);
     events_matrix = ublas::zero_matrix<int>(n_species, n_species+2);
-    
-    //Make a new, padded, second community
-    vector<string> pad_second_community;
-    if (communities[community_transition+1].size() > communities[community_transition].size())
-        pad_second_community.resize(communities[community_transition+1].size());
-    else
-        pad_second_community.resize(communities[community_transition].size());
-    
-    //Asign second community
-    if (communities[community_transition+1].size() > communities[community_transition].size())
-        pad_second_community = communities[community_transition+1];
-    else
-    {
-        for(int i=0; i<communities[community_transition].size(); ++i)
-            if(i < communities[community_transition+1].size())
-                pad_second_community[i] = communities[community_transition+1][i];
-            else
-                pad_second_community[i] = "DEATH";
-    }
-    
-    //Count of remaining species and no. species just staying the same
-    vector<int> remaining_sp(n_species), stationary_sp(n_species);
-    for(int i=0; i<communities[community_transition].size(); i++)
-        for(int j=0; j<n_species; j++)
-            if(species_names[j] == communities[community_transition][i])
-                ++remaining_sp[j];
-    
-    //To handle death and reproduction (hack?)
-    remaining_sp.push_back(pad_second_community.size());
-    remaining_sp.push_back(pad_second_community.size());
-    fill(stationary_sp.begin(), stationary_sp.end(), 0);
-    
-    //What're the most likely ways of getting to a species?
-    vector<int> most_likely(n_species+1);
-    for(int i=0; i<(n_species+2); ++i)
-        most_likely[i] = best_transition_to_sp(transition_matrix, i);
-    
-    //Loop through second padded community
-    for(int i=0; i<pad_second_community.size(); ++i)
-    {
-        int j=0;
-        //What species are we dealing with?
-        for(j=0; j<n_species; ++j)
-            if(pad_second_community[i] == species_names[j])
+    // - first community's species' count
+    vector<int> first_sp(n_species);
+    for(int i=0; i<communities[community_transition].size(); ++i)
+        for(int j=0; j<n_species; ++j)
+            if(communities[community_transition][i] == species_names[j])
+               {
+                   ++first_sp[j];
+                   break;
+               }
+    // - second community's species' count and no. individuals to handle
+    int to_do;
+    vector<int> second_sp(n_species+1);
+    for(int i=0; i<communities[community_transition+1].size(); ++i)
+        for(int j=0; j<n_species; ++j)
+            if(communities[community_transition+1][i] == species_names[j])
+            {
+                ++second_sp[j];
                 break;
-        
-        //Do something, but not infinitely
-        // - should re-write the order of the nesting...
-        int max_iter = 0,finished=0;
-        while(max_iter < n_species+2 && finished == 0)
+            }
+    if(communities[community_transition+1].size() < communities[community_transition].size())
+    {
+        second_sp[n_species] = communities[community_transition+1].size() - communities[community_transition].size();
+        to_do = communities[community_transition+1].size();
+    }
+    else
+        to_do = communities[community_transition].size();
+    
+    //Go along the sp_count vector
+    // - make this better by randomly going along the list...
+    int curr_sp = 0;
+    while(to_do != 0)
+    {
+        //While we still have something to do for this species
+        if(second_sp[curr_sp]>0)
         {
-            //Are we adding something in?
-            if(most_likely[j] == n_species+1)
+            //Find the best way to handle this species
+            int best_way = best_transition_to_sp(transition_matrix, first_sp, curr_sp);
+            
+            //Do we need to do an addition?
+            if(best_way == -1)
             {
-             ++events_matrix(j,n_species+1);
-             --remaining_sp[most_likely[j]];
-             finished = 1;
+                ++events_matrix(curr_sp, n_species+1);
+                --to_do;
+                --second_sp[curr_sp];
             }
             else
             {
-                //Not reproducing; can we do a transition?
-                if(remaining_sp[most_likely[j]] > 0)
-                {
-                    ++events_matrix(most_likely[j],j);
-                    --remaining_sp[most_likely[j]];
-                    //Stable transition?
-                    if(most_likely[j] == j)
-                        ++stationary_sp[j];
-                    finished = 1;
-                }
+                //No, so do a transition
+                ++events_matrix(best_way,curr_sp);
+                --to_do;
+                --second_sp[curr_sp];
             }
-            //Find a new minimum if we've had no luck this time
-            if(!finished)
-            {
-                if(most_likely[j] == n_species+1)
-                    transition_matrix(j,n_species+1) = 0.0;
-                else
-                    transition_matrix(most_likely[j],j) = 0.0;
-                most_likely[j] = best_transition_to_sp(transition_matrix, j);
-            }
-            ++max_iter;
         }
-        //Has there been a massive influx of species?
-        // - these should be dealt with better than this!
-        if(!finished)
-        {
-            //Do a reproduction
-            ++events_matrix(j,n_species+1);
-            finished = 1;
-        }
-        
-        //We have done something
-        assert(finished);
+        else
+            ++curr_sp;
     }
-    if (event_matrices.size() <= community_transition)
-        event_matrices.push_back(events_matrix);
-    else
-        event_matrices[community_transition] = events_matrix;
+    event_matrices.push_back(events_matrix);
 }
+
 
 //////////////
 //DISPLAY/////
