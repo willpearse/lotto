@@ -56,7 +56,7 @@ public:
     //Calculate likelihood of all communities
     double likelihood(void);
     //Optimise transition matrix, with a maximum number of subsets for communities and years
-    void optimise(int max_communities, int max_years);
+    void optimise(int max_communities, int max_years, int mat_iter=5, int param_iter=100);
     //Print a community out
     void print_community(int community_index, int year_index, int width=2);
     //Print out parameters of all matrices

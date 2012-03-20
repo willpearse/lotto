@@ -26,7 +26,7 @@ int main (int argc, const char * argv[])
     if(argc == 1)
     {
         cout << "To run with real data, enter two arguments: the community file, then the name of an ouput file" << endl;
-        cout << "To simulate, enter six arguments: the number of communities, number of years in each, number of species, number of starting individuals, the number of additions per year, and a random seed." << endl;
+        cout << "To simulate, enter six arguments: the number of communities, number of years in each, number of species, number of starting individuals, the number of additions per year, a stable transition rate, and a random seed." << endl;
         cout << "*Anything* else will either do nothing, or cause a confusing-looking error." << endl;
     }
     
@@ -37,7 +37,7 @@ int main (int argc, const char * argv[])
         
     }
     
-    if(argc == 7)
+    if(argc == 8)
     {
         //RANDOMISATIONS
         //Setup
@@ -46,7 +46,8 @@ int main (int argc, const char * argv[])
         int n_additions = atoi(argv[5]);
         vector<string> sp_names(atoi(argv[3]));
         int n_individuals(atoi(argv[4]));
-        int rnd_seed = atoi(argv[6]);
+        double static_freq = atof(argv[6]);
+        int rnd_seed = atoi(argv[7]);
         char letter = 'a';
         for(int i=0; i<sp_names.size(); ++i)
             sp_names[i] = letter++;
@@ -54,7 +55,6 @@ int main (int argc, const char * argv[])
         char big_letter = 'A';
         for(int i=0; i<community_names.size(); ++i)
             community_names[i] = big_letter++;
-        double static_freq = 0.2;
         double turnover_freq = (1.0 - static_freq)/(sp_names.size()+2);
         boost::numeric::ublas::matrix<double> transition_matrix(sp_names.size(), sp_names.size()+2);
         for(int i=0; i<transition_matrix.size1(); ++i)

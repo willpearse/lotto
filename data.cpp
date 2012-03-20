@@ -233,38 +233,48 @@ double inverse_integ_log_lik_add(double param, vector<Community> communities, bo
 //OPTIMISE//
 ////////////
 
-void Data::optimise(int max_communities, int max_years)
+void Data::optimise(int max_communities, int max_years, int mat_iter, int param_iter)
 {
     //Setup
     double sum_of_parameters = 0.0, sum_of_additions = 0.0;
-    //Loop over transition matrices
-    for(int i=0; i<transition_matrices.size(); ++i)
+    for(int m_iter=0; m_iter<mat_iter; ++m_iter)
     {
-        //Loop through each paramter
-        for(int j=0; j<n_species; ++j)
+        //Loop over transition matrices
+        for(int i=0; i<transition_matrices.size(); ++i)
         {
-            for(int k=0; k<n_species; ++k)
+            //Loop through each paramter
+            for(int j=0; j<n_species; ++j)
             {
-                transition_matrices[i](j,k) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_trans, _1, communities, transition_matrices[i], i, j, k), 0.0, 1.0, 100).first;
-                sum_of_parameters += transition_matrices[i](j,k);
-            }
-            
-            //A dodgy way to deal with the last transition parameter
-            transition_matrices[i](j,n_species) = 1.0 - sum_of_parameters;
-            sum_of_parameters = 0.0;
-            
-            //Now for the addition rates
-            // - and the dodgy method...
-            if(j != (n_species-1))
-            {
-                transition_matrices[i](j,n_species+1) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_add, _1, communities, transition_matrices[i], i, j), 0.0, 1.0-sum_of_additions, 100).first;
+                for(int k=0; k<(n_species+1); ++k)
+                {
+                    double fudge_factor = 1.0 - transition_matrices[i](j,k);
+                    
+                    //Set new parameter
+                    transition_matrices[i](j,k) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_trans, _1, communities, transition_matrices[i], i, j, k), 0.01, 0.99, param_iter).first;
+                    
+                    assert(transition_matrices[i](j,k) < 1.0);
+                    
+                    //Shift around the others
+                    double leftover = 1.0 - transition_matrices[i](j,k);
+                    for(int l=0; l<(transition_matrices[i].size2()-1); ++l)
+                        if(j!=l){
+                            transition_matrices[i](j,l) = (transition_matrices[i](j,l) / fudge_factor) * leftover;
+                            assert(transition_matrices[i](j,l) < 1.0);}
+                    sum_of_parameters += transition_matrices[i](j,k);
+                }
+                
+                //Now for the addition rates
+                double fudge_factor = 1 - transition_matrices[i](j,n_species+1);
+                transition_matrices[i](j,n_species+1) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_add, _1, communities, transition_matrices[i], i, j), 0.01, 0.99, param_iter).first;
+                //Shift around the others
+                double leftover = 1 - transition_matrices[i](j,n_species+1);
+                for(int l=0; l<transition_matrices[i].size1(); ++l)
+                    if(l!=j)
+                        transition_matrices[i](l,n_species+1) = (transition_matrices[i](l,n_species+1) / fudge_factor) * leftover;
                 sum_of_additions += transition_matrices[i](j,n_species+1);
             }
         }
-        //A dodgy way to deal with the last addition parameter
-        transition_matrices[i](n_species-1,n_species+1) = 1.0 - sum_of_additions;
     }
-
 }
 
 ///////////
