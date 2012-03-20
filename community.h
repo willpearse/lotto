@@ -36,8 +36,7 @@ private:
     std::vector<boost::numeric::ublas::matrix<int> > real_e_m;
     std::vector<std::vector<std::string> > communities;
     std::string community_name;
-    
-    
+
 public:
     Community(std::string species, std::string abundance, std::string year, std::string name);
     Community(int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::string name, int rnd_seed);
@@ -50,8 +49,8 @@ public:
     void set_transitions(boost::numeric::ublas::matrix<double> transition_matrix, int community_transition);
     
     friend class Data;
-    friend double inverse_likelihood_transition(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int row, int column);
-    friend double inverse_likelihood_addition(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int sp);
+    friend double inverse_integ_log_lik_trans(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int row, int column);
+    friend double inverse_integ_log_lik_add(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int sp);
 };
 
 #endif

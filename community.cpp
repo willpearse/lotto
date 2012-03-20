@@ -275,7 +275,6 @@ void Community::set_transitions(ublas::matrix<double> transition_matrix, int com
     event_matrices.push_back(events_matrix);
 }
 
-
 //////////////
 //DISPLAY/////
 //////////////

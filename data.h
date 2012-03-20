@@ -32,7 +32,7 @@
 #include "community.h"
 
 class Data{
-public:
+private:
     int n_communities;
     std::vector<std::string> community_names;
     int n_species;
@@ -41,6 +41,7 @@ public:
     std::vector<std::vector<int> > total_individuals;
     std::vector<Community> communities;
 
+public:
     std::vector<boost::numeric::ublas::matrix<double> > transition_matrices;
     //Real data from file
     Data(const char *file);
@@ -62,12 +63,9 @@ public:
     void print_parameters(int width=8);
     //Print out event matrix for a community's years
     void print_event_matrix(int community_index, int transition_index, int width=8);
-    
-    friend class Community;
-    //Calculate likelihood of a single parameter
-    // - can't be a member function because of BOOST's oddities
-    friend double inverse_likelihood_transition(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int row, int column);
-    friend double inverse_likelihood_addition(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int sp);
 };
+
+double inverse_integ_log_lik_trans(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int row, int column);
+double inverse_integ_log_lik_add(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int sp);
 
 #endif
