@@ -62,8 +62,8 @@ Data::Data(const char *file)
     
     //Make transition matrix
     transition_matrices.push_back(boost::numeric::ublas::matrix<int>(n_species, n_species+2));
-    double null_stationary_freq = 1.0 / (n_species-1);
-    double null_background_freq = (1.0 - null_stationary_freq) / (n_species-1);
+    double null_stationary_freq = 1.0 / (n_species);
+    double null_background_freq = (1.0 - null_stationary_freq) / (n_species);
     double null_add_freq = 1.0 / n_species;
     for(int i=0; i<n_species; ++i)
     {
@@ -91,8 +91,8 @@ Data::Data(int no_communities, int n_years, int total_individuals, int total_add
     
     //Make transition matrix
     transition_matrices.push_back(boost::numeric::ublas::matrix<int>(n_species, n_species+2));
-    double null_stationary_freq = 1.0 / (n_species-1);
-    double null_background_freq = (1.0 - null_stationary_freq) / (n_species-1);
+    double null_stationary_freq = 1.0 / (n_species);
+    double null_background_freq = (1.0 - null_stationary_freq) / (n_species);
     double null_add_freq = 1.0 / n_species;
     for(int i=0; i<n_species; ++i)
     {
@@ -126,6 +126,7 @@ void Data::set_transitions(void)
         {
             //Pull out the correct t_m
             boost::numeric::ublas::matrix<double> curr_t_m = transition_matrices[communities[i].transition_matrix_index[j]];
+            cout << curr_t_m(0,0) << endl;
             //Use it
             communities[i].event_matrices.push_back(communities[i].set_transitions(curr_t_m, j));
         }
@@ -288,36 +289,27 @@ void Data::optimise(int max_communities, int max_years, int mat_iter, int param_
                 int col = col_order[rnd_order[j]];
                 
                 //Set new parameter
-                if(row==0)
-                    cout << "Before (" << col << "): " << transition_matrices[i](row, col);
-                double fudge_factor = 1.0 - transition_matrices[i](row, col);
+                double original_value = transition_matrices[i](row, col);
+                double total_leftover = 1.0 - transition_matrices[i](row,col);
                 transition_matrices[i](row,col) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_trans, _1, communities, transition_matrices[i], i, row,col), 0.01, 0.99, param_iter).first;
-                if(row==0)
-                    cout << "," << transition_matrices[i](row,col) << endl;
+
                 //Shift around the others - differently if dealing with an addition
-                double leftover = 1.0 - transition_matrices[i](row,col);
+                double difference = original_value - transition_matrices[i](row,col);
                 if(col!=n_species+1)
                 {
-                    for(int l=0; l<(transition_matrices[i].size2()-1); ++l)
-                        if(col!=l)
-                            transition_matrices[i](row,l) = (transition_matrices[i](row,l) / fudge_factor) * leftover;
+                    for(int k=0; k<(transition_matrices[i].size2()-1); ++k)
+                        if(col!=k)
+                            transition_matrices[i](row,k) = ((transition_matrices[i](row,k) / total_leftover) * difference) + transition_matrices[i](row,k);
                 }
                 else
-                    for(int l=0; l<transition_matrices[i].size1(); ++l)
-                        if(l!=row)
-                            transition_matrices[i](l,n_species+1) = (transition_matrices[i](l,n_species+1) / fudge_factor) * leftover;
-                double total = 0.0;
-                for(int x=0; x<transition_matrices[i].size2(); ++x)
-                    total += transition_matrices[i](row,x);
-                if(total > 1.0){
-                    print_parameters();
-                    print_event_matrix(-1,0);}
-                assert(total <= 1.0);
-                
+                    for(int k=0; k<(transition_matrices[i].size1()); ++k)
+                        if(row!=k)
+                            transition_matrices[i](k,n_species+1) = ((transition_matrices[i](k,n_species+1) / total_leftover) * difference) + transition_matrices[i](k,n_species+1);
             }
-        print_parameters();
         }
     }
+    //Finalise transitions
+    set_transitions();
 }
 ///////////
 //DISPLAY//

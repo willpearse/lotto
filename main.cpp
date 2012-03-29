@@ -52,6 +52,7 @@ int main (int argc, const char * argv[])
         int n_communities = atoi(argv[1]);
         int n_years = atoi(argv[2]);
         int n_additions = atoi(argv[5]);
+        cout << n_additions << endl;
         vector<string> sp_names(atoi(argv[3]));
         int n_individuals(atoi(argv[4]));
         double static_freq = atof(argv[6]);
@@ -75,6 +76,7 @@ int main (int argc, const char * argv[])
         
         //Randomisations
         Data data(n_communities, n_years, n_individuals, n_additions, sp_names, transition_matrix, community_names, rnd_seed);
+        data.print_event_matrix(-1,0,8,0);
         data.print_event_matrix(-1,0,8,1);
         
         //Guess parameters

@@ -159,7 +159,6 @@ Community::Community(int no_years, int total_individuals, int total_additions, s
                 current_com.push_back(sp_names[next_step]);
             }
         }
-        real_e_m.push_back(event_matrix);
         
         //Do additions
         for(int i=0; i<total_additions; ++i)
@@ -169,8 +168,8 @@ Community::Community(int no_years, int total_individuals, int total_additions, s
             current_com.push_back(sp_names[rnd_index]);
         }
         
-        //Matrices
-        event_matrices.push_back(event_matrix);
+        //Matrices - but not estimated event matrix
+        real_e_m.push_back(event_matrix);
         transition_matrix_index.push_back(0);
         
         //Book-keeping
@@ -240,7 +239,6 @@ boost::numeric::ublas::matrix<int> Community::set_transitions(boost::numeric::ub
                    break;
                }
     // - second community's species' count and no. individuals to handle
-    int to_do;
     vector<int> second_sp(n_species+1, 0);
     for(int i=0; i<communities[community_transition+1].size(); ++i)
         for(int j=0; j<n_species; ++j)
@@ -249,13 +247,16 @@ boost::numeric::ublas::matrix<int> Community::set_transitions(boost::numeric::ub
                 ++second_sp[j];
                 break;
             }
+    
     if(communities[community_transition+1].size() < communities[community_transition].size())
-    {
-        second_sp[n_species] = communities[community_transition+1].size() - communities[community_transition].size();
-        to_do = communities[community_transition+1].size();
-    }
+        second_sp[n_species] = communities[community_transition].size() - communities[community_transition+1].size();
     else
-        to_do = communities[community_transition].size();
+        second_sp[n_species] = 0;
+    
+    //Calculate how much we have to do
+    int to_do = 0;
+    for(int i=0; i<second_sp.size(); ++i)
+        to_do += second_sp[i];
     
     //Go along the sp_count vector
     // - make this better by randomly going along the list...
@@ -287,10 +288,6 @@ boost::numeric::ublas::matrix<int> Community::set_transitions(boost::numeric::ub
         else
             ++curr_sp;
     }
-    /*for(int x=0; x<events_matrix.size1(); ++x)
-        for(int y=0; y<events_matrix.size1(); ++y)
-            cout << events_matrix(x,y) << ",";
-    cout << endl;*/
     return events_matrix;
 }
 
