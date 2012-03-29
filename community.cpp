@@ -186,6 +186,20 @@ Community::Community(int no_years, int total_individuals, int total_additions, s
     }
 }
 
+void Community::initialise(vector<boost::numeric::ublas::matrix<double> > transition_matrices)
+{
+    n_species = species_names.size();
+    n_years = communities.size();
+    int i=0;
+    for(; i<communities.size(); ++i)
+    {
+        n_individuals.push_back(communities[i].size());
+        transition_matrix_index.push_back(0);
+        event_matrices.push_back(set_transitions(transition_matrices[0], i));
+    }
+    n_individuals.push_back(communities[i].size());
+}
+
 ///////////////
 //TRANSITIONS//
 ///////////////
@@ -210,7 +224,7 @@ static int best_transition_to_sp(boost::numeric::ublas::matrix<double> t_m, vect
 }
 
 //Transition-first method
-void Community::set_transitions(ublas::matrix<double> transition_matrix, int community_transition)
+boost::numeric::ublas::matrix<int> Community::set_transitions(boost::numeric::ublas::matrix<double> transition_matrix, int community_transition)
 {
     //Setup
     // - events matrix
@@ -227,7 +241,7 @@ void Community::set_transitions(ublas::matrix<double> transition_matrix, int com
                }
     // - second community's species' count and no. individuals to handle
     int to_do;
-    vector<int> second_sp(n_species+1);
+    vector<int> second_sp(n_species+1, 0);
     for(int i=0; i<communities[community_transition+1].size(); ++i)
         for(int j=0; j<n_species; ++j)
             if(communities[community_transition+1][i] == species_names[j])
@@ -267,12 +281,17 @@ void Community::set_transitions(ublas::matrix<double> transition_matrix, int com
                 ++events_matrix(best_way,curr_sp);
                 --to_do;
                 --second_sp[curr_sp];
+                --first_sp[best_way];
             }
         }
         else
             ++curr_sp;
     }
-    event_matrices.push_back(events_matrix);
+    /*for(int x=0; x<events_matrix.size1(); ++x)
+        for(int y=0; y<events_matrix.size1(); ++y)
+            cout << events_matrix(x,y) << ",";
+    cout << endl;*/
+    return events_matrix;
 }
 
 //////////////

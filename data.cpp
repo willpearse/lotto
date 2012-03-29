@@ -45,7 +45,7 @@ Data::Data(const char *file)
             community_names.push_back(community_name);
         }
         else //Yes, so add to that particular community
-            //communities[i].add_species(species, abundance, year);
+            communities[i].add_species(species, abundance, year);
         
         //Add species to list if it's new
         for(i=0; i<species_names.size(); ++i)
@@ -56,17 +56,27 @@ Data::Data(const char *file)
     }
     
     n_species = species_names.size();
-    
-    //Initialise all communities
-    //for(i=0; i<communities.size(); ++i)
-    //    communities[i].initialise();
+    n_communities = communities.size();
+    for(int i=0; i<communities.size(); ++i)
+        n_sites.push_back(communities[i].communities.size());
     
     //Make transition matrix
-    transition_matrices.push_back(boost::numeric::ublas::matrix<int>(n_species, n_species));
-    double null_freq = 1.0 / n_species;
+    transition_matrices.push_back(boost::numeric::ublas::matrix<int>(n_species, n_species+2));
+    double null_stationary_freq = 1.0 / (n_species-1);
+    double null_background_freq = (1.0 - null_stationary_freq) / (n_species-1);
+    double null_add_freq = 1.0 / n_species;
     for(int i=0; i<n_species; ++i)
-        for(int j=0; j<n_species; ++j)
-            transition_matrices[0](i,j) = null_freq;
+    {
+        int j=0;
+        for(; j<(n_species+1); ++j)
+            transition_matrices[0](i,j) = null_background_freq;
+        transition_matrices[0](i,j) = null_add_freq;
+        transition_matrices[0](i,i) = null_stationary_freq;
+    }
+    
+    //Initialise all communities
+    for(i=0; i<communities.size(); ++i)
+        communities[i].initialise(transition_matrices);
     
 }
 
@@ -104,13 +114,14 @@ void Data::set_transitions(void)
     //Go through each community
     for(int i=0; i<communities.size(); ++i)
     {
+        communities[i].event_matrices.clear();
         //Go through each community->community transition
         for(int j=0; j<(communities[i].n_years-1); ++j)
         {
             //Pull out the correct t_m
             boost::numeric::ublas::matrix<double> curr_t_m = transition_matrices[communities[i].transition_matrix_index[j]];
             //Use it
-            communities[i].set_transitions(curr_t_m, j);
+            communities[i].event_matrices.push_back(communities[i].set_transitions(curr_t_m, j));
         }
     }
 }
@@ -248,7 +259,7 @@ void Data::optimise(int max_communities, int max_years, int mat_iter, int param_
                 for(int k=0; k<(n_species+1); ++k)
                 {
                     double fudge_factor = 1.0 - transition_matrices[i](j,k);
-                    
+
                     //Set new parameter
                     transition_matrices[i](j,k) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_trans, _1, communities, transition_matrices[i], i, j, k), 0.01, 0.99, param_iter).first;
                     

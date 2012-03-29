@@ -25,7 +25,7 @@ int main (int argc, const char * argv[])
     
     if(argc == 1)
     {
-        cout << "To run with real data, enter two arguments: the community file, then the name of an ouput file" << endl;
+        cout << "To run with real data, enter two arguments: the community file, then the number of overall iterations" << endl;
         cout << "To simulate, enter six arguments: the number of communities, number of years in each, number of species, number of starting individuals, the number of additions per year, a stable transition rate, and a random seed." << endl;
         cout << "*Anything* else will either do nothing, or cause a confusing-looking error." << endl;
     }
@@ -33,8 +33,15 @@ int main (int argc, const char * argv[])
     if(argc == 3)
     {
         //Loading data from file
-        Data data(argv[2]);
+        cout << "...loading from " << argv[1] << endl;
+        Data data(argv[1]);
         
+        //Guess parameters
+        int runs(atoi(argv[2]));
+        data.optimise(0,0,runs);
+        
+        //Ouput
+        data.print_parameters();
     }
     
     if(argc == 8)
