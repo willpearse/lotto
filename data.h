@@ -14,6 +14,7 @@
 #define lottery_data_h
 
 #include <functional>
+#include <algorithm>
 #include <cassert>
 #include <vector>
 #include <iostream>
@@ -58,11 +59,11 @@ public:
     //Optimise transition matrix, with a maximum number of subsets for communities and years
     void optimise(int max_communities, int max_years, int mat_iter=5, int param_iter=100);
     //Print a community out
-    void print_community(int community_index, int year_index, int width=2);
+    void print_community(int community_index, int year_index, int width=8);
     //Print out parameters of all matrices
     void print_parameters(int width=8);
     //Print out event matrix for a community's years
-    void print_event_matrix(int community_index, int transition_index, int width=8);
+    void print_event_matrix(int community_index, int transition_index, int width=8, int real=0);
 };
 
 double inverse_integ_log_lik_trans(double param, std::vector<Community> communities, boost::numeric::ublas::matrix<double> transition_matrix, int t_m_index, int row, int column);

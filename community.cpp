@@ -306,11 +306,15 @@ void Community::print_year(int index, int width)
     cout <<endl;
 }
 
-void Community::print_event_matrix(int transition_index, int width)
+void Community::print_event_matrix(int transition_index, int width, int real)
 {
     //Setup
     assert(transition_index < event_matrices.size());
-    boost::numeric::ublas::matrix<int> curr_e_m = event_matrices[transition_index];
+    boost::numeric::ublas::matrix<int> * curr_e_m;
+    if(real)
+        curr_e_m = &real_e_m[transition_index];
+    else
+        curr_e_m = &event_matrices[transition_index];
     
     //Header
     cout << endl << setw(width) << "" ;
@@ -319,11 +323,11 @@ void Community::print_event_matrix(int transition_index, int width)
     cout << setw(width) << "Death" << setw(width) << "Add." << endl;
     
     //Looping through
-    for(int i = 0; i<curr_e_m.size1(); ++i)
+    for(int i = 0; i<curr_e_m->size1(); ++i)
     {
         cout << setw(width) << species_names[i];
-        for(int j=0; j<curr_e_m.size2(); ++j)
-            cout << setw(width) << curr_e_m(i,j);
+        for(int j=0; j<curr_e_m->size2(); ++j)
+            cout << setw(width) << (*curr_e_m)(i,j);
         cout << endl;
     }
 }

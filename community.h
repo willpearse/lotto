@@ -45,7 +45,7 @@ public:
     double calc_likelihood(void);
     void add_species(std::string species, std::string abundance, std::string year);
     void print_year(int index, int width);
-    void print_event_matrix(int transition_index, int width);
+    void print_event_matrix(int transition_index, int width, int real=0);
     //Find likely transitions
     boost::numeric::ublas::matrix<int> set_transitions(boost::numeric::ublas::matrix<double> transition_matrix, int community_transition);
     

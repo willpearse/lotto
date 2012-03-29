@@ -42,6 +42,7 @@ int main (int argc, const char * argv[])
         
         //Ouput
         data.print_parameters();
+	data.print_event_matrix(-1,0);
     }
     
     if(argc == 8)
@@ -54,6 +55,7 @@ int main (int argc, const char * argv[])
         vector<string> sp_names(atoi(argv[3]));
         int n_individuals(atoi(argv[4]));
         double static_freq = atof(argv[6]);
+        cout << static_freq << endl;
         int rnd_seed = atoi(argv[7]);
         char letter = 'a';
         for(int i=0; i<sp_names.size(); ++i)
@@ -73,10 +75,15 @@ int main (int argc, const char * argv[])
         
         //Randomisations
         Data data(n_communities, n_years, n_individuals, n_additions, sp_names, transition_matrix, community_names, rnd_seed);
+        data.print_event_matrix(-1,0,8,1);
         
         //Guess parameters
         cout << endl << "..'optimising'..." << endl << endl;
         data.set_transitions();
+        
+        data.print_event_matrix(-1,0);
+        data.print_parameters();
+        
         data.optimise(0,0);
         //Output
         cout << "Log-likelihood: " << data.likelihood() << endl << "Parameters:" << endl;

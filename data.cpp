@@ -83,20 +83,26 @@ Data::Data(const char *file)
 Data::Data(int no_communities, int n_years, int total_individuals, int total_additions, std::vector<std::string> sp_names, boost::numeric::ublas::matrix<double> transition_matrix, std::vector<std::string> com_names, int rnd_seed)
 {
     boost::mt19937 rnd_generator(rnd_seed);
-    boost::numeric::ublas::matrix<double> null_matrix(transition_matrix);
-    double null_param = 1.0 / null_matrix.size1();
-    double null_add = 1.0 / (null_matrix.size1()-1);
-    for(int i=0; i<null_matrix.size1(); ++i)
-    {
-        for(int j=0; j<(null_matrix.size2()-1); ++j)
-            null_matrix(i,j) = null_param;
-        null_matrix(i,(null_matrix.size2()-1)) = null_add;
-    }
-    transition_matrices.push_back(null_matrix);
+
     species_names = sp_names;
     n_communities = no_communities;
     community_names = com_names;
     n_species = sp_names.size();
+    
+    //Make transition matrix
+    transition_matrices.push_back(boost::numeric::ublas::matrix<int>(n_species, n_species+2));
+    double null_stationary_freq = 1.0 / (n_species-1);
+    double null_background_freq = (1.0 - null_stationary_freq) / (n_species-1);
+    double null_add_freq = 1.0 / n_species;
+    for(int i=0; i<n_species; ++i)
+    {
+        int j=0;
+        for(; j<(n_species+1); ++j)
+            transition_matrices[0](i,j) = null_background_freq;
+        transition_matrices[0](i,j) = null_add_freq;
+        transition_matrices[0](i,i) = null_stationary_freq;
+    }
+    
     for(int i=0; i<no_communities; ++i)
     {
         int new_seed = rnd_generator();
@@ -168,7 +174,7 @@ double inverse_integ_log_lik_trans(double param, vector<Community> communities, 
     for(int i=0; i<transition_matrix.size2()-1; ++i)
         transition_matrix(row,i) = (transition_matrix(row,i) / fudge_factor) * leftover;
     transition_matrix(row,column) = param;
-    
+	
     vector<double> all_likelihoods;
     //Go through each community
     for(int i=0; i<communities.size(); ++i)
@@ -247,47 +253,72 @@ double inverse_integ_log_lik_add(double param, vector<Community> communities, bo
 void Data::optimise(int max_communities, int max_years, int mat_iter, int param_iter)
 {
     //Setup
-    double sum_of_parameters = 0.0, sum_of_additions = 0.0;
     for(int m_iter=0; m_iter<mat_iter; ++m_iter)
     {
+        //Randomise the order in which we estimate parameters
+        vector<int> order(transition_matrices[0].size1() * transition_matrices[0].size2());
+        vector<int> row_order(order.size()), col_order(order.size());
+        int row_track=0, col_track=0;
+        for(int x=0; x<order.size(); ++x)
+        {
+            order[x] = x;
+            if(col_track < transition_matrices[0].size2())
+            {
+                col_order[x] = col_track++;
+                row_order[x] = row_track;
+            }
+            else
+            {
+                col_order[x] = 0;
+                col_track = 1;
+                ++row_track;
+            }
+            row_order[x] = row_track;
+        }
+        vector<int> rnd_order(order);
+        random_shuffle(rnd_order.begin(), rnd_order.end());
         //Loop over transition matrices
         for(int i=0; i<transition_matrices.size(); ++i)
         {
-            //Loop through each paramter
-            for(int j=0; j<n_species; ++j)
+            //Randomly loop through each parameter
+            for(int j=0; j<rnd_order.size(); ++j)
             {
-                for(int k=0; k<(n_species+1); ++k)
-                {
-                    double fudge_factor = 1.0 - transition_matrices[i](j,k);
-
-                    //Set new parameter
-                    transition_matrices[i](j,k) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_trans, _1, communities, transition_matrices[i], i, j, k), 0.01, 0.99, param_iter).first;
-                    
-                    assert(transition_matrices[i](j,k) < 1.0);
-                    
-                    //Shift around the others
-                    double leftover = 1.0 - transition_matrices[i](j,k);
-                    for(int l=0; l<(transition_matrices[i].size2()-1); ++l)
-                        if(j!=l){
-                            transition_matrices[i](j,l) = (transition_matrices[i](j,l) / fudge_factor) * leftover;
-                            assert(transition_matrices[i](j,l) < 1.0);}
-                    sum_of_parameters += transition_matrices[i](j,k);
-                }
+                //Row and column indices
+                int row = row_order[rnd_order[j]];
+                int col = col_order[rnd_order[j]];
                 
-                //Now for the addition rates
-                double fudge_factor = 1 - transition_matrices[i](j,n_species+1);
-                transition_matrices[i](j,n_species+1) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_add, _1, communities, transition_matrices[i], i, j), 0.01, 0.99, param_iter).first;
-                //Shift around the others
-                double leftover = 1 - transition_matrices[i](j,n_species+1);
-                for(int l=0; l<transition_matrices[i].size1(); ++l)
-                    if(l!=j)
-                        transition_matrices[i](l,n_species+1) = (transition_matrices[i](l,n_species+1) / fudge_factor) * leftover;
-                sum_of_additions += transition_matrices[i](j,n_species+1);
+                //Set new parameter
+                if(row==0)
+                    cout << "Before (" << col << "): " << transition_matrices[i](row, col);
+                double fudge_factor = 1.0 - transition_matrices[i](row, col);
+                transition_matrices[i](row,col) = boost::math::tools::brent_find_minima(boost::bind(inverse_integ_log_lik_trans, _1, communities, transition_matrices[i], i, row,col), 0.01, 0.99, param_iter).first;
+                if(row==0)
+                    cout << "," << transition_matrices[i](row,col) << endl;
+                //Shift around the others - differently if dealing with an addition
+                double leftover = 1.0 - transition_matrices[i](row,col);
+                if(col!=n_species+1)
+                {
+                    for(int l=0; l<(transition_matrices[i].size2()-1); ++l)
+                        if(col!=l)
+                            transition_matrices[i](row,l) = (transition_matrices[i](row,l) / fudge_factor) * leftover;
+                }
+                else
+                    for(int l=0; l<transition_matrices[i].size1(); ++l)
+                        if(l!=row)
+                            transition_matrices[i](l,n_species+1) = (transition_matrices[i](l,n_species+1) / fudge_factor) * leftover;
+                double total = 0.0;
+                for(int x=0; x<transition_matrices[i].size2(); ++x)
+                    total += transition_matrices[i](row,x);
+                if(total > 1.0){
+                    print_parameters();
+                    print_event_matrix(-1,0);}
+                assert(total <= 1.0);
+                
             }
+        print_parameters();
         }
     }
 }
-
 ///////////
 //DISPLAY//
 ///////////
@@ -296,7 +327,7 @@ void Data::print_community(int community_index, int year_index, int width)
     communities[community_index].print_year(year_index, width);
 }
 
-void Data::print_event_matrix(int community_index, int transition_index, int width)
+void Data::print_event_matrix(int community_index, int transition_index, int width, int real)
 {
     //Are we printing a total event matrix
     if(community_index == -1)
@@ -306,10 +337,18 @@ void Data::print_event_matrix(int community_index, int transition_index, int wid
         for(int i=0; i<n_species; ++i)
             for(int j=0; j<(n_species+2); ++j)
                 total_events(i,j) = 0;
-        for(int i=0; i<n_communities; ++i)
-            for(int j=0; j<communities[i].event_matrices.size(); ++j)
-                total_events += communities[i].event_matrices[j];
-        
+        if(real)
+        {
+            for(int i=0; i<n_communities; ++i)
+                for(int j=0; j<communities[i].real_e_m.size(); ++j)
+                    total_events += communities[i].real_e_m[j];
+        }
+        else
+        {
+            for(int i=0; i<n_communities; ++i)
+                for(int j=0; j<communities[i].event_matrices.size(); ++j)
+                    total_events += communities[i].event_matrices[j];
+        }
         //Print it out
         //Header
         cout << endl << setw(width) << "" ;
@@ -327,7 +366,7 @@ void Data::print_event_matrix(int community_index, int transition_index, int wid
         }
     }
     else
-        communities[community_index].print_event_matrix(transition_index, width);
+        communities[community_index].print_event_matrix(transition_index, width, real);
 }
 
 void Data::print_parameters(int width)
