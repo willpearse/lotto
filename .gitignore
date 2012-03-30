@@ -1,0 +1,5 @@
+data/
+*.o
+paper/*
+lottery
+.DS_Store
