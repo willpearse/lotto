@@ -55,6 +55,7 @@ Community::Community(string species, string abundance, string year, string name)
     species_names.push_back(species);
     community_name = name;
     transition_matrix_index.push_back(0);
+    debug=0;
 }
 
 void Community::add_species(string species, string abundance, string year)
@@ -183,6 +184,7 @@ Community::Community(int no_years, int total_individuals, int total_additions, s
         years.push_back(i);
         communities[i].erase(communities[i].begin());
     }
+    debug = 0;
 }
 
 void Community::initialise(vector<boost::numeric::ublas::matrix<double> > transition_matrices)
@@ -223,70 +225,65 @@ static int best_transition_to_sp(boost::numeric::ublas::matrix<double> t_m, vect
 }
 
 //Transition-first method
+// - now random!
 boost::numeric::ublas::matrix<int> Community::set_transitions(boost::numeric::ublas::matrix<double> transition_matrix, int community_transition)
 {
     //Setup
     // - events matrix
     ublas::matrix<int> events_matrix(n_species, n_species+2);
     events_matrix = ublas::zero_matrix<int>(n_species, n_species+2);
-    // - first community's species' count
-    vector<int> first_sp(n_species);
-    for(int i=0; i<communities[community_transition].size(); ++i)
-        for(int j=0; j<n_species; ++j)
-            if(communities[community_transition][i] == species_names[j])
-               {
-                   ++first_sp[j];
-                   break;
-               }
-    // - second community's species' count and no. individuals to handle
-    vector<int> second_sp(n_species+1, 0);
-    for(int i=0; i<communities[community_transition+1].size(); ++i)
-        for(int j=0; j<n_species; ++j)
-            if(communities[community_transition+1][i] == species_names[j])
+    
+    //Copy communities
+    vector<string> first=communities[community_transition], second=communities[community_transition+1];
+    
+    //What's in the first community?
+    vector<int> first_counts(n_species,0);
+    for(int i=0; i<first.size(); ++i)
+        for(int j=0; j<species_names.size(); ++j)
+            if(first[i]==species_names[j])
             {
-                ++second_sp[j];
+                ++first_counts[j];
                 break;
             }
     
-    if(communities[community_transition+1].size() < communities[community_transition].size())
-        second_sp[n_species] = communities[community_transition].size() - communities[community_transition+1].size();
-    else
-        second_sp[n_species] = 0;
+    //Pad the second community if we need to handle some death
+    int size_diff = communities[community_transition].size() - communities[community_transition+1].size();
+    if(size_diff > 0)
+        for(int i=0; i<size_diff; ++i)
+            second.push_back("DEAD");
     
-    //Calculate how much we have to do
-    int to_do = 0;
-    for(int i=0; i<second_sp.size(); ++i)
-        to_do += second_sp[i];
+    //Randomise the order of the second community.
+    random_shuffle(second.begin(), second.end());
     
-    //Go along the sp_count vector
-    // - make this better by randomly going along the list...
-    int curr_sp = 0;
-    while(to_do != 0)
+    //Loop along the randomised second community
+    for(int i=0; i<second.size(); ++i)
     {
-        //While we still have something to do for this species
-        if(second_sp[curr_sp]>0)
-        {
-            //Find the best way to handle this species
-            int best_way = best_transition_to_sp(transition_matrix, first_sp, curr_sp);
-            
-            //Do we need to do an addition?
-            if(best_way == -1)
+        //What species index?
+        int curr_sp=-1;
+        for(int j=0; j<n_species; ++j)
+            if(second[i] == species_names[j])
             {
-                ++events_matrix(curr_sp, n_species+1);
-                --to_do;
-                --second_sp[curr_sp];
+                curr_sp = j;
+                break;
             }
-            else
-            {
-                //No, so do a transition
-                ++events_matrix(best_way,curr_sp);
-                --to_do;
-                --second_sp[curr_sp];
-                --first_sp[best_way];
-            }
-        }
+        
+        //Check for death
+        if(curr_sp==-1)
+            curr_sp = n_species;
+        
+        //Find the best way to handle this species
+        int best_way = best_transition_to_sp(transition_matrix, first_counts, curr_sp);
+        
+        //Do we need to do an addition?
+        if(best_way == -1)
+            ++events_matrix(curr_sp, n_species+1);
         else
-            ++curr_sp;
+        {
+            //No, so do a transition
+            ++events_matrix(best_way,curr_sp);
+            --first_counts[best_way];
+        }
+        
     }
     return events_matrix;
 }

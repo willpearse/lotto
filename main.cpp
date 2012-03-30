@@ -42,7 +42,7 @@ int main (int argc, const char * argv[])
         
         //Ouput
         data.print_parameters();
-	data.print_event_matrix(-1,0);
+        data.print_event_matrix(-1,0);
     }
     
     if(argc == 8)
@@ -76,15 +76,9 @@ int main (int argc, const char * argv[])
         
         //Randomisations
         Data data(n_communities, n_years, n_individuals, n_additions, sp_names, transition_matrix, community_names, rnd_seed);
-        data.print_event_matrix(-1,0,8,0);
-        data.print_event_matrix(-1,0,8,1);
         
         //Guess parameters
         cout << endl << "..'optimising'..." << endl << endl;
-        data.set_transitions();
-        
-        data.print_event_matrix(-1,0);
-        data.print_parameters();
         
         data.optimise(0,0);
         //Output

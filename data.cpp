@@ -124,9 +124,10 @@ void Data::set_transitions(void)
         //Go through each community->community transition
         for(int j=0; j<(communities[i].n_years-1); ++j)
         {
+            if(i==7)
+                communities[i].debug = 1;
             //Pull out the correct t_m
             boost::numeric::ublas::matrix<double> curr_t_m = transition_matrices[communities[i].transition_matrix_index[j]];
-            cout << curr_t_m(0,0) << endl;
             //Use it
             communities[i].event_matrices.push_back(communities[i].set_transitions(curr_t_m, j));
         }
@@ -253,6 +254,7 @@ double inverse_integ_log_lik_add(double param, vector<Community> communities, bo
 
 void Data::optimise(int max_communities, int max_years, int mat_iter, int param_iter)
 {
+    set_transitions();
     //Setup
     for(int m_iter=0; m_iter<mat_iter; ++m_iter)
     {

@@ -27,6 +27,7 @@
 
 class Community{
 private:
+    int debug;
     int n_years, n_species;
     std::vector<int> years;
     std::vector<std::string> species_names;
