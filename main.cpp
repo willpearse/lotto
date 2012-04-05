@@ -60,74 +60,52 @@ int main (int argc, const char * argv[])
     
     if(argc == 2)
     {
-        //////////////
+        //RANDOMISATIONS
         //Setup
-        //////////////
-        int nComm[] = {5, 10, 20, 50};
-        int nYears[] = {5, 15, 30};
-        int nIndiv[] = {100, 200};
-        int nAdds[] = {5, 20};
-        double nFreqs[] = {0.2, 0.5, 0.8};
-        int nIter = 30;
-        int rnd_seed = atoi(argv[1]);
-        boost::mt19937 rnd_generator(rnd_seed);
-        vector<Data> iter_results;
-        
-        //////////////
-        //Tests
-        //////////////
-        //Create species' names
+        int n_communities = 10;
+        int n_years = 10;
+        int n_additions = 10;
         vector<string> sp_names(5);
+        int n_individuals(100);
+        double static_freq = 0.6;
+        int rnd_seed = 123456;
         char letter = 'a';
-        for(int i=0; i<5; ++i)
+        for(int i=0; i<sp_names.size(); ++i)
             sp_names[i] = letter++;
-        
-        for(int com=0; com<4; ++com)
+        vector<string> community_names(n_communities);
+        char big_letter = 'A';
+        for(int i=0; i<community_names.size(); ++i)
+            community_names[i] = big_letter++;
+        boost::numeric::ublas::matrix<double> transition_matrix(sp_names.size(), sp_names.size()+2);
+        boost::mt19937 generator(atoi(argv[1]));
+        boost::uniform_real<double> uniform(0.4, 0.9);
+        for(int i=0; i<transition_matrix.size1(); ++i)
         {
-            //Create community names
-            vector<string> community_names(nComm[com]);
-            char LETTER = 'A';
-            for(int i=0; i<nComm[com]; ++i)
-                community_names[i] = LETTER++;
-            
-            for(int yr=0; yr<3; ++yr)
-                for(int ind=0; ind<2; ++ind)
-                    for(int add=0; add<2; ++add)
-                        for(int frq=0; frq<3; ++frq)
-                        {
-                            //Create transition matrix
-                            double turnover_freq = (1.0 - nFreqs[frq]) / sp_names.size();
-                            double add_freq = 1.0 / sp_names.size();
-                            boost::numeric::ublas::matrix<double> transition_matrix(sp_names.size(), sp_names.size()+2);
-                            for(int i=0; i<transition_matrix.size1(); ++i)
-                            {
-                                int j=0;
-                                for(j=0; j<(transition_matrix.size2()-1); ++j)
-                                    if(i==j)
-                                        transition_matrix(i,j) = nFreqs[frq];
-                                    else
-                                        transition_matrix(i,j) = turnover_freq;
-                                transition_matrix(i,j) = add_freq;
-                            }
-                            
-                            for(int iter=0; iter<nIter; ++iter)
-                            {
-                                //Random number
-                                int local_seed = rnd_generator();
-                                
-                                //Create data...
-                                Data data(nComm[com], nYears[yr], nIndiv[ind], nAdds[add], sp_names, transition_matrix, community_names, local_seed);
-                                
-                                //Optimise
-                                data.optimise(0,0);
-                                
-                                //Store
-                                iter_results.push_back(data);
-                            }
-                            print_iteration(iter_results, nComm[com], nYears[yr], nIndiv[ind], nAdds[add], transition_matrix, sp_names);
-                            iter_results.clear();
-                        }
+            double static_freq = uniform(generator);
+            double turnover_freq = (1.0 - static_freq) / 5.0;
+            for(int j=0; j<transition_matrix.size2(); ++j)
+            {
+                if(i==j)
+                    transition_matrix(i,j) = static_freq;
+                else
+                    transition_matrix(i,j) = turnover_freq;
+                transition_matrix(i,6) = (1.0/5.0);
             }
+        }
+        //Randomisations
+        Data data(n_communities, n_years, n_individuals, n_additions, sp_names, transition_matrix, community_names, rnd_seed);
+        cout << endl << "Starting parameters:" << endl;
+        data.print_parameters();
+        data.optimise(0,0);
+        //Output
+        cout << "Log-likelihood: " << data.likelihood() << endl << "Parameters:" << endl;
+        data.print_parameters();
+        cout << endl << "Real parameters:" << endl;
+        data.print_parameters(8,1);
+        cout << endl << "Estimated events:";
+        data.print_event_matrix(-1,0);
+        cout << endl << "Real events:";
+        data.print_event_matrix(-1,0,8,1);
     }
     
     if(argc == 3)

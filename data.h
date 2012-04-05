@@ -41,6 +41,7 @@ private:
     std::vector<int> n_sites;
     std::vector<std::vector<int> > total_individuals;
     std::vector<Community> communities;
+    boost::numeric::ublas::matrix<double> real_transition_matrix;
 
 public:
     std::vector<boost::numeric::ublas::matrix<double> > transition_matrices;
@@ -61,7 +62,7 @@ public:
     //Print a community out
     void print_community(int community_index, int year_index, int width=8);
     //Print out parameters of all matrices
-    void print_parameters(int width=8);
+    void print_parameters(int width=8, int real=0);
     //Print out event matrix for a community's years
     void print_event_matrix(int community_index, int transition_index, int width=8, int real=0);
 };

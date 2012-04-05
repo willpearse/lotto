@@ -36,7 +36,7 @@ make.output <- function(data, community=-1){
 	if(community > 0){
 		community <- levels(data$siteNo)[community]
 		data <- data[data$siteNo==community,]
-	} else community <- "Everything"
+	} else community <- "ten"
 	
 	blanks <- names(which(with(data, tapply(count, sci_name, sum))==0)) #DODGY!!!
 	data <- data[!data$sci_name %in% blanks,]
@@ -50,3 +50,8 @@ for(comm in seq(levels(merged.data$siteNo))){
 	make.output(merged.data, comm)
 }
 make.output(merged.data)
+
+#What are the best ten sites?
+best.sites <- names(sort(table(pseudo.data$siteNo), decreasing=TRUE)[1:10])
+best.data <- merged.data[merged.data$siteNo %in% best.sites,]
+make.output(best.data)

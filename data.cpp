@@ -88,6 +88,7 @@ Data::Data(int no_communities, int n_years, int total_individuals, int total_add
     n_communities = no_communities;
     community_names = com_names;
     n_species = sp_names.size();
+    real_transition_matrix = transition_matrix;
     
     //Make transition matrix
     transition_matrices.push_back(boost::numeric::ublas::matrix<int>(n_species, n_species+2));
@@ -363,9 +364,9 @@ void Data::print_event_matrix(int community_index, int transition_index, int wid
         communities[community_index].print_event_matrix(transition_index, width, real);
 }
 
-void Data::print_parameters(int width)
+void Data::print_parameters(int width, int real)
 {
-    for(int i=0; i<transition_matrices.size(); ++i)
+    if(real)
     {
         //Header
         cout << endl << setw(width) << "" ;
@@ -374,15 +375,38 @@ void Data::print_parameters(int width)
         cout << setw(width) << "Death" << setw(width) << "Add." << endl;
         
         //Looping through
-        for(int j=0; j<transition_matrices[i].size1(); ++j)
+        for(int j=0; j<real_transition_matrix.size1(); ++j)
         {
             cout << setw(width) << species_names[j];
-            for(int k=0; k<transition_matrices[i].size2(); ++k)
-                if(transition_matrices[i](j,k)>0.0001)
-                    cout << setw(width) << setprecision(4) << transition_matrices[i](j,k);
+            for(int k=0; k<real_transition_matrix.size2(); ++k)
+                if(real_transition_matrix(j,k)>0.0001)
+                    cout << setw(width) << setprecision(4) << real_transition_matrix(j,k);
                 else
                     cout << setw(width) << setprecision(4) << 0;
             cout << endl;
+        }
+    }
+    else
+    {
+        for(int i=0; i<transition_matrices.size(); ++i)
+        {
+            //Header
+            cout << endl << setw(width) << "" ;
+            for(vector<string>::const_iterator iter = species_names.begin(); iter != species_names.end(); ++iter)
+                cout << setw(width) << *iter;
+            cout << setw(width) << "Death" << setw(width) << "Add." << endl;
+            
+            //Looping through
+            for(int j=0; j<transition_matrices[i].size1(); ++j)
+            {
+                cout << setw(width) << species_names[j];
+                for(int k=0; k<transition_matrices[i].size2(); ++k)
+                    if(transition_matrices[i](j,k)>0.0001)
+                        cout << setw(width) << setprecision(4) << transition_matrices[i](j,k);
+                    else
+                        cout << setw(width) << setprecision(4) << 0;
+                cout << endl;
+            }
         }
     }
 }
