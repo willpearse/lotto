@@ -1,5 +1,5 @@
 test.o: community.o data.o
-	g++ community.o data.o main.cpp -o lottery
+	g++ community.o data.o main.cpp -o lotto
 
 data.o: data.cpp data.h community.o
 	g++ -c data.cpp -o data.o
